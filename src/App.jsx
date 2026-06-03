@@ -6,7 +6,7 @@ import { ANALYST_NAMES, DEFAULT_BRIEF } from './constants/analysts'
 import {
   callAnalyst, buildBriefFromTicker, fetchCurrentNews,
   buildAnalystInput, buildTier2Input, buildChairmanInput,
-  compressOutput,
+  compressOutput, callChairmanFollowUp,
 } from './utils/api'
 
 function freshState() {
@@ -27,11 +27,16 @@ export default function App() {
   const [running, setRunning] = useState(false)
   const [sessionComplete, setSessionComplete] = useState(false)
   const [buildingBrief, setBuildingBrief] = useState(false)
-  const [newsStatus, setNewsStatus] = useState('') // '' | 'loading' | 'done' | 'error'
+  const [newsStatus, setNewsStatus] = useState('') // '' | 'loading' | 'done' | 'error' | 'skipped'
+  const briefIsLive = useRef(false) // true when brief was just built from ticker (already has current info)
   const [error, setError] = useState('')
   const [logs, setLogs] = useState([])
 
   const runningRef = useRef(false)
+  const chairmanContextRef = useRef(null) // original chairman input, kept for follow-up threads
+
+  const [chatHistory, setChatHistory] = useState([])   // [{role, content}]
+  const [chatLoading, setChatLoading] = useState(false)
 
   const log = useCallback((msg) => {
     const t = new Date().toISOString().slice(11, 19)
@@ -50,6 +55,7 @@ export default function App() {
     try {
       const result = await buildBriefFromTicker(ticker, apiKey)
       setBrief(result)
+      briefIsLive.current = true
       log(`Brief ready for ${ticker.toUpperCase()}`)
     } catch (err) {
       setError(err.message)
@@ -73,10 +79,13 @@ export default function App() {
     setAnalystStates(freshState())
 
     try {
-      // ── News fetch — one web_search call, injected into all analysts ──────────
+      // ── News fetch — skipped if brief was just built from ticker (already has live data) ──
       const sym = extractTicker(brief, ticker)
       let news = ''
-      if (sym) {
+      if (briefIsLive.current) {
+        setNewsStatus('skipped')
+        log('Brief already contains live data — skipping news fetch')
+      } else if (sym) {
         setNewsStatus('loading')
         log(`Fetching current news for ${sym}...`)
         try {
@@ -135,7 +144,9 @@ export default function App() {
       setAnalyst('Chairman', { status: 'loading' })
       log('Tier 3 starting...')
 
-      const chairOut = await callAnalyst('Chairman', buildChairmanInput(brief, ctx2), apiKey)
+      const chairInput = buildChairmanInput(brief, ctx2)
+      chairmanContextRef.current = chairInput
+      const chairOut = await callAnalyst('Chairman', chairInput, apiKey)
       setAnalyst('Chairman', { status: 'done', output: chairOut })
       log('Session complete')
 
@@ -156,14 +167,35 @@ export default function App() {
     }
   }, [apiKey, brief, ticker, log, setAnalyst])
 
+  const handleSendFollowUp = useCallback(async (message) => {
+    if (!message.trim() || chatLoading) return
+    const userMsg = { role: 'user', content: message }
+    setChatHistory(prev => [...prev, userMsg])
+    setChatLoading(true)
+    try {
+      const initialOutput = analystStates.Chairman.output
+      const reply = await callChairmanFollowUp(
+        chairmanContextRef.current, initialOutput, chatHistory, message, apiKey
+      )
+      setChatHistory(prev => [...prev, { role: 'assistant', content: reply }])
+    } catch (err) {
+      setChatHistory(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}` }])
+    } finally {
+      setChatLoading(false)
+    }
+  }, [chatLoading, chatHistory, analystStates, apiKey])
+
   const handleReset = useCallback(() => {
     runningRef.current = false
+    briefIsLive.current = false
+    chairmanContextRef.current = null
     setRunning(false)
     setSessionComplete(false)
     setNewsStatus('')
     setError('')
     setLogs([])
     setAnalystStates(freshState())
+    setChatHistory([])
   }, [])
 
   return (
@@ -175,7 +207,7 @@ export default function App() {
           onApiKeyChange={key => { setApiKey(key); localStorage.setItem('aa_api_key', key) }}
           ticker={ticker}               onTickerChange={setTicker}
           onBuildBrief={handleBuildBrief} buildingBrief={buildingBrief}
-          brief={brief}                 onBriefChange={setBrief}
+          brief={brief}                 onBriefChange={v => { setBrief(v); briefIsLive.current = false }}
           error={error}
           logs={logs}
           running={running}
@@ -189,6 +221,9 @@ export default function App() {
           analystStates={analystStates}
           sessionComplete={sessionComplete}
           isRunning={running}
+          chatHistory={chatHistory}
+          chatLoading={chatLoading}
+          onSendFollowUp={handleSendFollowUp}
         />
       </div>
     </div>

@@ -4,9 +4,9 @@ const API_URL = 'https://api.anthropic.com/v1/messages'
 
 // Tuned per analyst — structured responses are short
 const MAX_TOKENS = {
-  Marcus: 250, Sage: 250, Val: 300,
-  Mo: 250, Vera: 300, Chairman: 400,
-  news: 250, brief: 600,
+  Marcus: 400, Sage: 400, Val: 450,
+  Mo: 400, Vera: 450, Chairman: 900,
+  news: 300, brief: 700,
 }
 
 function makeHeaders(apiKey) {
@@ -19,7 +19,12 @@ function makeHeaders(apiKey) {
 }
 
 function extractText(content) {
-  return content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim()
+  return content
+    .filter(b => b.type === 'text')
+    .map(b => b.text)
+    .join('\n')
+    .replace(/\*\*|__/g, '')   // strip markdown bold markers that break field-label parsing
+    .trim()
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -149,6 +154,31 @@ export function buildChairmanInput(fullBrief, allContext) {
   // Chairman: brief header + question only — full detail is in the analyst outputs
   const compact = `${briefHeader(fullBrief)}\n${briefQuestion(fullBrief)}`
   return `${compact}\n\nANALYST REPORTS:\n${allContext}`
+}
+
+// ─── Chairman follow-up conversation ─────────────────────────────────────────
+export async function callChairmanFollowUp(chairmanInput, initialOutput, history, newMessage, apiKey) {
+  const messages = [
+    { role: 'user',      content: chairmanInput  },
+    { role: 'assistant', content: initialOutput  },
+    ...history,
+    { role: 'user',      content: newMessage     },
+  ]
+
+  const data = await fetchWithRetry(API_URL, {
+    method: 'POST',
+    headers: makeHeaders(apiKey),
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      system: [{ type: 'text', text: PROMPTS.ChairmanFollowUp, cache_control: { type: 'ephemeral' } }],
+      messages,
+    }),
+  }, 'Chairman follow-up')
+
+  const text = extractText(data.content)
+  if (!text) throw new Error('Chairman follow-up: no text in response')
+  return text
 }
 
 // ─── Analyst call — no web_search (news is pre-injected) ─────────────────────

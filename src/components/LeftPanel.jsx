@@ -1,23 +1,24 @@
 import TierStatus from './TierStatus'
 
 const inputStyle = {
-  background: '#0a0a14',
-  border: '1px solid #1e1e32',
-  borderRadius: 2,
-  color: '#c8c8d8',
+  background: '#FFFFFF',
+  border: '1px solid #E2E8F0',
+  borderRadius: 6,
+  color: '#0F172A',
   fontSize: 11,
   fontFamily: "'DM Mono', monospace",
-  padding: '10px 14px',
+  padding: '9px 12px',
   width: '100%',
-  transition: 'border-color 0.3s ease',
+  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
   outline: 'none',
 }
 
 const labelStyle = {
   fontSize: 10,
-  letterSpacing: '0.2em',
-  color: '#4a4a6a',
+  letterSpacing: '0.16em',
+  color: '#64748B',
   textTransform: 'uppercase',
+  fontWeight: 600,
 }
 
 export default function LeftPanel({
@@ -29,39 +30,48 @@ export default function LeftPanel({
   onConvene, onReset,
   analystStates,
 }) {
-  const btnLoading = running
+  const btnLoading  = running || buildingBrief
   const btnComplete = sessionComplete
 
   const btnStyle = {
-    background: btnComplete ? '#0a1a0a' : btnLoading ? '#1a1a2e' : '#1a1500',
-    border: `1px solid ${btnComplete ? '#2a4a2a' : btnLoading ? '#2a2a4a' : '#C9A84C'}`,
-    borderRadius: 2,
-    color: btnComplete ? '#4CAF50' : btnLoading ? '#3a3a5a' : '#C9A84C',
+    background: btnComplete ? '#059669' : btnLoading ? '#94A3B8' : '#4F46E5',
+    border: 'none',
+    borderRadius: 7,
+    color: '#FFFFFF',
     fontFamily: "'Bebas Neue', sans-serif",
-    fontSize: 16,
+    fontSize: 15,
     letterSpacing: '0.2em',
-    padding: 14,
+    padding: '13px 14px',
     cursor: btnLoading ? 'not-allowed' : 'pointer',
-    transition: 'all 0.3s ease',
+    transition: 'all 0.2s ease',
     width: '100%',
+    boxShadow: btnLoading ? 'none' : btnComplete ? '0 2px 8px #05996930' : '0 2px 8px #4F46E530',
   }
 
-  const btnText = btnComplete ? 'RESET SESSION' : btnLoading ? 'COUNCIL IN SESSION...' : 'CONVENE COUNCIL'
+  const btnText = btnComplete ? 'RESET SESSION'
+    : running ? 'COUNCIL IN SESSION...'
+    : buildingBrief ? 'BUILDING BRIEF...'
+    : 'CONVENE COUNCIL'
 
   const hasSession = running || sessionComplete ||
     Object.values(analystStates).some(s => s.status !== 'queued')
 
+  const focusStyle = { borderColor: '#4F46E5', boxShadow: '0 0 0 3px #4F46E520' }
+
   return (
     <div style={{
-      background: '#09091a',
-      borderRight: '1px solid #1a1a2e',
-      padding: '28px 24px',
+      background: '#FFFFFF',
+      borderRight: '1px solid #E2E8F0',
+      padding: '24px 20px',
       display: 'flex',
       flexDirection: 'column',
-      gap: 14,
-      width: 380,
+      gap: 12,
+      width: 360,
       flexShrink: 0,
+      overflowY: 'auto',
+      boxShadow: '1px 0 4px rgba(0,0,0,0.04)',
     }}>
+
       {/* API Key */}
       <div style={labelStyle}>Anthropic API Key</div>
       <input
@@ -71,18 +81,21 @@ export default function LeftPanel({
         placeholder="sk-ant-..."
         style={{
           ...inputStyle,
-          borderColor: apiKey.startsWith('sk-') ? '#C9A84C66' : '#1e1e32',
+          borderColor: apiKey.startsWith('sk-') ? '#10B981' : '#E2E8F0',
+          boxShadow: apiKey.startsWith('sk-') ? '0 0 0 3px #10B98118' : 'none',
         }}
-        onFocus={e => e.target.style.borderColor = '#C9A84C44'}
-        onBlur={e => e.target.style.borderColor = apiKey.startsWith('sk-') ? '#C9A84C66' : '#1e1e32'}
+        onFocus={e => { e.target.style.borderColor = '#4F46E5'; e.target.style.boxShadow = '0 0 0 3px #4F46E520' }}
+        onBlur={e => { e.target.style.borderColor = apiKey.startsWith('sk-') ? '#10B981' : '#E2E8F0'; e.target.style.boxShadow = apiKey.startsWith('sk-') ? '0 0 0 3px #10B98118' : 'none' }}
       />
       {apiKey.startsWith('sk-') && (
-        <div style={{ fontSize: 9, letterSpacing: '0.15em', color: '#C9A84C55', textTransform: 'uppercase', marginTop: -8 }}>
-          ✓ Saved in browser storage
+        <div style={{ fontSize: 10, color: '#10B981', marginTop: -6, letterSpacing: '0.05em' }}>
+          ✓ Key saved in browser storage
         </div>
       )}
 
-      {/* Ticker → auto-build brief */}
+      <div style={{ borderTop: '1px solid #F1F5F9', margin: '2px 0' }} />
+
+      {/* Ticker */}
       <div style={labelStyle}>Build Brief From Ticker</div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input
@@ -91,22 +104,25 @@ export default function LeftPanel({
           onChange={e => onTickerChange(e.target.value.toUpperCase())}
           placeholder="GOOG"
           maxLength={10}
-          style={{ ...inputStyle, width: 90, flexShrink: 0, textTransform: 'uppercase' }}
+          style={{ ...inputStyle, width: 80, flexShrink: 0, textTransform: 'uppercase', textAlign: 'center', letterSpacing: '0.1em' }}
           onKeyDown={e => e.key === 'Enter' && onBuildBrief()}
+          onFocus={e => { e.target.style.borderColor = '#4F46E5'; e.target.style.boxShadow = '0 0 0 3px #4F46E520' }}
+          onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none' }}
         />
         <button
           onClick={onBuildBrief}
           disabled={buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')}
           style={{
             flex: 1,
-            background: buildingBrief ? '#1a1a2e' : '#0d0d1e',
-            border: '1px solid #2a2a4a',
-            borderRadius: 2,
-            color: buildingBrief ? '#3a3a5a' : '#7a7ab8',
+            background: (buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')) ? '#F8FAFC' : '#EEF2FF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 6,
+            color: (buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')) ? '#CBD5E1' : '#4F46E5',
             fontFamily: "'DM Mono', monospace",
             fontSize: 10,
-            letterSpacing: '0.15em',
-            cursor: buildingBrief ? 'not-allowed' : 'pointer',
+            letterSpacing: '0.12em',
+            cursor: (buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')) ? 'not-allowed' : 'pointer',
+            fontWeight: 600,
             transition: 'all 0.2s ease',
           }}
         >
@@ -115,35 +131,27 @@ export default function LeftPanel({
       </div>
 
       {/* Brief */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <div style={labelStyle}>Investment Brief</div>
-      </div>
+      <div style={labelStyle}>Investment Brief</div>
       <textarea
         value={brief}
         onChange={e => onBriefChange(e.target.value)}
+        placeholder={`Enter a brief or use the ticker builder above.\n\nINVESTMENT BRIEF: TICKER — Month Year — ~$price\n\nSITUATION: ...\nCONSENSUS: ...\nFINANCIALS: ...\nWHAT CONSENSUS MISSES:\n- ...\nQUESTION: Buy TICKER at current price vs QQQ?`}
         style={{
           ...inputStyle,
-          minHeight: 280,
+          minHeight: 240,
           resize: 'none',
           lineHeight: 1.7,
         }}
-        onFocus={e => e.target.style.borderColor = '#C9A84C44'}
-        onBlur={e => e.target.style.borderColor = '#1e1e32'}
+        onFocus={e => { e.target.style.borderColor = '#4F46E5'; e.target.style.boxShadow = '0 0 0 3px #4F46E520' }}
+        onBlur={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = 'none' }}
       />
-      <div style={{ fontSize: 9, letterSpacing: '0.15em', color: '#2a2a4a', textTransform: 'uppercase' }}>
-        Edit brief or enter ticker above to auto-populate
-      </div>
 
       {/* Error */}
       {error && (
         <div style={{
-          background: '#1a0a0a',
-          border: '1px solid #4a1a1a',
-          borderRadius: 2,
-          padding: 12,
-          fontSize: 11,
-          color: '#c87a7a',
-          wordBreak: 'break-word',
+          background: '#FEF2F2', border: '1px solid #FECACA',
+          borderRadius: 6, padding: '10px 12px',
+          fontSize: 11, color: '#DC2626', lineHeight: 1.5,
         }}>
           {error}
         </div>
@@ -152,56 +160,51 @@ export default function LeftPanel({
       {/* Debug log */}
       {logs.length > 0 && (
         <div style={{
-          background: '#0a0a0a',
-          border: '1px solid #1a1a2a',
-          borderRadius: 2,
-          padding: 10,
-          fontSize: 10,
-          color: '#3a3a6a',
-          maxHeight: 100,
-          overflowY: 'auto',
+          background: '#F8FAFC', border: '1px solid #F1F5F9',
+          borderRadius: 6, padding: 10,
+          fontSize: 10, color: '#94A3B8',
+          maxHeight: 90, overflowY: 'auto',
           fontFamily: "'DM Mono', monospace",
+          lineHeight: 1.6,
         }}>
           {logs.map((line, i) => <div key={i}>{line}</div>)}
         </div>
       )}
 
       {/* Convene button */}
-      <button
-        style={btnStyle}
-        onClick={btnComplete ? onReset : onConvene}
-        disabled={btnLoading}
-      >
+      <button style={btnStyle} onClick={btnComplete ? onReset : onConvene} disabled={btnLoading}>
         {btnText}
       </button>
 
-      {/* Tier status */}
+      {/* Session progress */}
       {hasSession && (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 2 }}>
           {newsStatus && (
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '8px 12px', background: '#0a0a14',
-              border: '1px solid #1a1a2a', borderRadius: 2,
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '7px 12px',
+              background: '#FFFFFF', border: '1px solid #F1F5F9',
+              borderRadius: 6, boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
             }}>
-              <div style={{ fontSize: 9, color: '#3a3a5a', letterSpacing: '0.15em', width: 48 }}>NEWS</div>
+              <div style={{ fontSize: 9, color: '#94A3B8', letterSpacing: '0.15em', width: 48, textTransform: 'uppercase' }}>NEWS</div>
               <div style={{
                 width: 8, height: 8, borderRadius: '50%',
-                background: newsStatus === 'done' ? '#C9A84C'
-                  : newsStatus === 'error' ? '#c87a7a'
-                  : '#C9A84C88',
-                boxShadow: newsStatus === 'loading' ? '0 0 6px #C9A84C' : 'none',
+                background: newsStatus === 'done' || newsStatus === 'skipped' ? '#4F46E5'
+                  : newsStatus === 'error' ? '#EF4444'
+                  : '#A5B4FC',
+                boxShadow: newsStatus === 'loading' ? '0 0 0 3px #4F46E520' : 'none',
                 animation: newsStatus === 'loading' ? 'pulse 1s ease infinite' : 'none',
               }} />
-              <div style={{ fontSize: 9, color: '#2a2a4a', letterSpacing: '0.1em' }}>
-                {newsStatus === 'loading' ? 'Fetching...'
-                  : newsStatus === 'done' ? 'Injected into all analysts'
+              <div style={{ fontSize: 9, color: '#94A3B8', letterSpacing: '0.08em' }}>
+                {newsStatus === 'loading'   ? 'Fetching...'
+                  : newsStatus === 'done'   ? 'Injected into all analysts'
+                  : newsStatus === 'skipped' ? 'In brief — skipped'
                   : 'Fetch failed — proceeding'}
               </div>
             </div>
           )}
           <TierStatus analystStates={analystStates} />
-        </>
+        </div>
       )}
     </div>
   )
