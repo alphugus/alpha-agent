@@ -23,7 +23,7 @@ const labelStyle = {
 
 export default function LeftPanel({
   apiKey, onApiKeyChange,
-  ticker, onTickerChange, onBuildBrief, buildingBrief,
+  ticker, onTickerChange, isPreIPO, onTogglePreIPO, onBuildBrief, buildingBrief,
   brief, onBriefChange,
   error, logs,
   running, sessionComplete, newsStatus,
@@ -96,14 +96,47 @@ export default function LeftPanel({
       <div style={{ borderTop: '1px solid #F1F5F9', margin: '2px 0' }} />
 
       {/* Ticker */}
-      <div style={labelStyle}>Build Brief From Ticker</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={labelStyle}>Build Brief From Ticker</div>
+        <button
+          onClick={onTogglePreIPO}
+          title="Toggle Pre-IPO mode — searches S-1, offer price, underwriters"
+          style={{
+            background: isPreIPO ? '#F59E0B' : '#F8FAFC',
+            border: `1px solid ${isPreIPO ? '#F59E0B' : '#E2E8F0'}`,
+            borderRadius: 10,
+            color: isPreIPO ? '#FFFFFF' : '#94A3B8',
+            fontSize: 9, letterSpacing: '0.14em', fontWeight: 700,
+            padding: '3px 8px',
+            cursor: 'pointer',
+            fontFamily: "'DM Mono', monospace",
+            transition: 'all 0.2s ease',
+            boxShadow: isPreIPO ? '0 2px 6px #F59E0B40' : 'none',
+          }}
+        >
+          PRE-IPO {isPreIPO ? '✓' : ''}
+        </button>
+      </div>
+
+      {isPreIPO && (
+        <div style={{
+          fontSize: 10, color: '#92400E', background: '#FFFBEB',
+          border: '1px solid #FDE68A', borderRadius: 6,
+          padding: '8px 10px', lineHeight: 1.5,
+          fontFamily: "'DM Mono', monospace",
+          marginTop: -4,
+        }}>
+          Pre-IPO mode: searches S-1/F-1, offer price range, underwriters & deal sentiment. Enter ticker or company name.
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 8 }}>
         <input
           type="text"
           value={ticker}
           onChange={e => onTickerChange(e.target.value.toUpperCase())}
-          placeholder="GOOG"
-          maxLength={10}
+          placeholder={isPreIPO ? 'SPCX or SpaceX' : 'GOOG'}
+          maxLength={20}
           style={{ ...inputStyle, width: 80, flexShrink: 0, textTransform: 'uppercase', textAlign: 'center', letterSpacing: '0.1em' }}
           onKeyDown={e => e.key === 'Enter' && onBuildBrief()}
           onFocus={e => { e.target.style.borderColor = '#4F46E5'; e.target.style.boxShadow = '0 0 0 3px #4F46E520' }}
@@ -114,13 +147,14 @@ export default function LeftPanel({
           disabled={buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')}
           style={{
             flex: 1,
-            background: (buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')) ? '#F8FAFC' : '#EEF2FF',
-            border: '1px solid #E2E8F0',
+            background: (buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')) ? '#F8FAFC'
+              : isPreIPO ? '#FFFBEB' : '#EEF2FF',
+            border: `1px solid ${isPreIPO ? '#FDE68A' : '#E2E8F0'}`,
             borderRadius: 6,
-            color: (buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')) ? '#CBD5E1' : '#4F46E5',
+            color: (buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')) ? '#CBD5E1'
+              : isPreIPO ? '#92400E' : '#4F46E5',
             fontFamily: "'DM Mono', monospace",
-            fontSize: 10,
-            letterSpacing: '0.12em',
+            fontSize: 10, letterSpacing: '0.12em',
             cursor: (buildingBrief || !ticker.trim() || !apiKey.startsWith('sk-')) ? 'not-allowed' : 'pointer',
             fontWeight: 600,
             transition: 'all 0.2s ease',

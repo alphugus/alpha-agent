@@ -44,18 +44,34 @@ async function fetchWithRetry(url, options, label, maxRetries = 3) {
 }
 
 // ─── Brief builder ────────────────────────────────────────────────────────────
-export async function buildBriefFromTicker(ticker, apiKey) {
+export async function buildBriefFromTicker(ticker, apiKey, isPreIPO = false) {
   const sym = ticker.toUpperCase()
-  const data = await fetchWithRetry(API_URL, {
-    method: 'POST',
-    headers: makeHeaders(apiKey),
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: MAX_TOKENS.brief,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{
-        role: 'user',
-        content: `Search for current investment info on ${sym} and write a brief in EXACTLY this format (no other text):
+
+  const content = isPreIPO
+    ? `Search for pre-IPO information about "${sym}" — this may be a company name, expected ticker, or filing name. Search specifically for: S-1 or F-1 SEC filing, IPO price range, shares offered, implied valuation, underwriters/bookrunners, key financials from the prospectus, lock-up terms, expected listing date, and institutional/analyst sentiment on the deal. Write a pre-IPO investment brief in EXACTLY this format (no other text):
+
+INVESTMENT BRIEF: [Full Company Name] (${sym}) — Pre-IPO — [Month Year] — IPO [expected date or TBD]
+
+IPO STRUCTURE: [offer price range · shares offered · implied mkt cap · exchange · expected date]
+
+BUSINESS: [2-3 sentences on what the company does, its market position, and stage]
+
+S-1 HIGHLIGHTS: [key financials from prospectus — revenue, growth rate, EBITDA/net income, cash, use of proceeds]
+
+UNDERWRITERS: [lead underwriters / bookrunners]
+
+CONSENSUS: [1-2 sentences on deal sentiment — oversubscribed? institutional demand? valuation controversy?]
+
+WHAT CONSENSUS MISSES:
+- [overlooked positive 1]
+- [overlooked positive 2]
+- [overlooked positive 3]
+
+MACRO: [1 sentence on current IPO window and sector backdrop]
+
+QUESTION: Subscribe to ${sym} IPO at offer price for high-conviction growth portfolio vs QQQ benchmark?`
+
+    : `Search for current investment info on ${sym} and write a brief in EXACTLY this format (no other text):
 
 INVESTMENT BRIEF: ${sym} — [Month Year] — [price with ~]
 
@@ -72,8 +88,16 @@ WHAT CONSENSUS MISSES:
 
 MACRO: [1 sentence on macro backdrop]
 
-QUESTION: Buy ${sym} at current price for high-conviction growth portfolio vs QQQ benchmark?`,
-      }],
+QUESTION: Buy ${sym} at current price for high-conviction growth portfolio vs QQQ benchmark?`
+
+  const data = await fetchWithRetry(API_URL, {
+    method: 'POST',
+    headers: makeHeaders(apiKey),
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: MAX_TOKENS.brief,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: [{ role: 'user', content }],
     }),
   }, 'Brief builder')
 

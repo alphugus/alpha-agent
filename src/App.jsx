@@ -23,6 +23,7 @@ function extractTicker(brief, tickerField) {
 export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('aa_api_key') || '')
   const [ticker, setTicker] = useState('')
+  const [isPreIPO, setIsPreIPO] = useState(false)
   const [brief, setBrief] = useState(DEFAULT_BRIEF)
   const [analystStates, setAnalystStates] = useState(freshState)
   const [running, setRunning] = useState(false)
@@ -69,7 +70,7 @@ export default function App() {
     setError('')
     log(`Building brief for ${ticker.toUpperCase()}...`)
     try {
-      const result = await buildBriefFromTicker(ticker, apiKey)
+      const result = await buildBriefFromTicker(ticker, apiKey, isPreIPO)
       setBrief(result)
       briefIsLive.current = true
       log(`Brief ready for ${ticker.toUpperCase()}`)
@@ -225,6 +226,7 @@ export default function App() {
           apiKey={apiKey}
           onApiKeyChange={key => { setApiKey(key); localStorage.setItem('aa_api_key', key) }}
           ticker={ticker}               onTickerChange={setTicker}
+          isPreIPO={isPreIPO}           onTogglePreIPO={() => setIsPreIPO(v => !v)}
           onBuildBrief={handleBuildBrief} buildingBrief={buildingBrief}
           brief={brief}                 onBriefChange={v => { setBrief(v); briefIsLive.current = false }}
           error={error}
