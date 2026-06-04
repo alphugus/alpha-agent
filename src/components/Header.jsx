@@ -1,4 +1,4 @@
-export default function Header() {
+export default function Header({ onLogout }) {
   return (
     <div style={{
       background: '#FFFFFF',
@@ -29,10 +29,25 @@ export default function Header() {
           Investment Council · v0.1
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 20, fontSize: 10, letterSpacing: '0.12em', color: '#94A3B8' }}>
-        <span>TIER 1: MARCUS · SAGE</span>
-        <span>TIER 2: VAL · MO · VERA (BLIND)</span>
-        <span>TIER 3: CHAIRMAN</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <div style={{ display: 'flex', gap: 20, fontSize: 10, letterSpacing: '0.12em', color: '#94A3B8' }}>
+          <span>TIER 1: MARCUS · SAGE</span>
+          <span>TIER 2: VAL · MO · VERA (BLIND)</span>
+          <span>TIER 3: CHAIRMAN</span>
+        </div>
+        {onLogout && (
+          <button onClick={onLogout} style={{
+            background: 'none', border: '1px solid #E2E8F0', borderRadius: 6,
+            color: '#94A3B8', fontSize: 10, letterSpacing: '0.12em',
+            padding: '5px 10px', cursor: 'pointer', fontFamily: "'DM Mono', monospace",
+            transition: 'all 0.2s',
+          }}
+          onMouseOver={e => { e.target.style.borderColor = '#CBD5E1'; e.target.style.color = '#64748B' }}
+          onMouseOut={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.color = '#94A3B8' }}
+          >
+            SIGN OUT
+          </button>
+        )}
       </div>
     </div>
   )

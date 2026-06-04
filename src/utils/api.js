@@ -6,7 +6,7 @@ const API_URL = 'https://api.anthropic.com/v1/messages'
 const MAX_TOKENS = {
   Marcus: 400, Sage: 400, Val: 450,
   Mo: 400, Vera: 450, Chairman: 900,
-  news: 300, brief: 700,
+  news: 300, brief: 1500,
 }
 
 function makeHeaders(apiKey) {

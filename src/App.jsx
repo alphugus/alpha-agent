@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Header from './components/Header'
+import LoginScreen from './components/LoginScreen'
 import LeftPanel from './components/LeftPanel'
 import RightPanel from './components/RightPanel'
 import { ANALYST_NAMES, DEFAULT_BRIEF } from './constants/analysts'
@@ -31,6 +32,21 @@ export default function App() {
   const briefIsLive = useRef(false) // true when brief was just built from ticker (already has current info)
   const [error, setError] = useState('')
   const [logs, setLogs] = useState([])
+
+  const [authChecked, setAuthChecked]       = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth')
+      .then(r => r.json())
+      .then(d => { setIsAuthenticated(!!d.ok); setAuthChecked(true) })
+      .catch(() => { setIsAuthenticated(true); setAuthChecked(true) }) // dev mode — no auth server
+  }, [])
+
+  const handleLogout = useCallback(async () => {
+    await fetch('/api/logout', { method: 'POST' }).catch(() => {})
+    setIsAuthenticated(false)
+  }, [])
 
   const runningRef = useRef(false)
   const chairmanContextRef = useRef(null) // original chairman input, kept for follow-up threads
@@ -198,9 +214,12 @@ export default function App() {
     setChatHistory([])
   }, [])
 
+  if (!authChecked) return null
+  if (!isAuthenticated) return <LoginScreen onLogin={() => setIsAuthenticated(true)} />
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
+      <Header onLogout={handleLogout} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <LeftPanel
           apiKey={apiKey}

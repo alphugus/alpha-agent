@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Auth & TLS — never commit these
+.credentials
+certs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
